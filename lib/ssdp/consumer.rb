@@ -72,9 +72,9 @@ module SSDP
 
     def search_async(options)
       if options[:first_only]
-        Thread.new { search_single options }
+        Thread.new { search_single options }.join
       else
-        Thread.new { search_multi options }
+        Thread.new { search_multi options }.join
       end
     end
 
@@ -119,21 +119,16 @@ module SSDP
         ready = IO.select [@search_socket], nil, nil, remaining
         if ready
           message, producer = @search_socket.recvfrom options[:maxpack]
-          if options[:filter].nil?
-            responses << process_ssdp_packet(message, producer)
-          else
-            result = process_ssdp_packet message, producer
-            responses << result if options[:filter].call(result)
+          result = process_ssdp_packet message, producer
+          if options[:filter].nil? || options[:filter].call(result)
+            options[:callback].call result
+            responses << result
           end
         end
         remaining -= (Time.now - start_time).to_i
       end
 
-      if options[:synchronous]
-        responses
-      else
-        options[:callback].call responses
-      end
+      responses
     end
 
     def process_ssdp_packet(message, producer)

@@ -31,10 +31,12 @@ require_relative 'lib/ssdp'
 
 =end
 
-seconds = 10
+seconds = 30
+puts "documentation and source available at https://github.com/mikecarlton/discover-ssdp"
 puts "searching for devices on the local network for #{seconds} seconds..."
+puts
 STDOUT.flush
-SSDP::Consumer.new.search(service: 'ssdp:all', synchronous: true, timeout: seconds).each do |result|
+SSDP::Consumer.new(synchronous: false, timeout: seconds).search(service: 'ssdp:all') do |result|
   name = Base64.decode64(result.dig(:params, "X-Friendly-Name") || "")
   location = result.dig(:params, "LOCATION")
   if location =~ /(\d{1,3}(\.\d{1,3}){3})/ then
@@ -42,4 +44,5 @@ SSDP::Consumer.new.search(service: 'ssdp:all', synchronous: true, timeout: secon
   end
 
   puts "#{result[:params]["LOCATION"]}  #{ip}  #{name}"
+  STDOUT.flush
 end
